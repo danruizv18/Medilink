@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Medilink - Mi Perfil</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body class="agron-bg">
+
+    <!-- NAVBAR SUPERIOR -->
+    <header class="navbar-top">
+        <div class="navbar-container">
+            <div class="navbar-brand">
+                <span class="brand-icon">💊</span>
+                <div class="brand-text">
+                    <h2>Medilink</h2>
+                    <small>Droguería & Farmacia</small>
+                </div>
+            </div>
+
+            <a href="{{ url_for('dashboard_droguero') }}" class="btn-inventory">
+                <span>←</span> Volver al Catálogo
+            </a>
+        </div>
+    </header>
+
+    <main class="profile-page-container">
+        <div class="profile-layout">
+            
+            <!-- SIDEBAR DE CONFIGURACIÓN -->
+            <aside class="profile-sidebar">
+                <span class="sidebar-section-title">CONFIGURACIÓN</span>
+                <nav class="sidebar-nav">
+                    <a href="#" class="sidebar-link active">
+                        <span class="icon">👤</span> Información personal
+                    </a>
+                    <a href="#" class="sidebar-link">
+                        <span class="icon">🔔</span> Preferencias
+                    </a>
+                    <div class="sidebar-divider"></div>
+                    <a href="{{ url_for('logout') }}" class="sidebar-link logout">
+                        <span class="icon">🚪</span> Cerrar sesión
+                    </a>
+                </nav>
+            </aside>
+
+            <!-- PANEL PRINCIPAL DE INFORMACIÓN -->
+            <section class="profile-content-card">
+                <div class="profile-header-with-action">
+                    <div>
+                        <h1>Información personal y de marca</h1>
+                        <p>Mantén actualizados tus datos de contacto y ubicación de la droguería.</p>
+                    </div>
+                </div>
+
+                <!-- MENSAJES FLASH -->
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                  {% if messages %}
+                    {% for category, message in messages %}
+                      <div class="alert alert-{{ category }}" style="margin-bottom: 20px;">{{ message }}</div>
+                    {% endfor %}
+                  {% endif %}
+                {% endwith %}
+
+                <form id="formPerfil" action="{{ url_for('perfil') }}" method="POST" enctype="multipart/form-data">
+                    
+                    <!-- FOTO DE PERFIL CON PREVISUALIZACIÓN -->
+                    <div class="avatar-upload-row">
+                        <div class="avatar-circle-large" id="avatarPreviewContainer">
+                            {% if usuario.foto_perfil and 'default_avatar' not in usuario.foto_perfil %}
+                                <img src="{{ usuario.foto_perfil }}" id="avatarImg" alt="Foto de Perfil">
+                            {% else %}
+                                <div class="avatar-initials" id="avatarInitials">
+                                    {{ usuario.nombre_completo[:2]|upper }}
+                                </div>
+                                <img src="" id="avatarImg" alt="Foto de Perfil" style="display: none;">
+                            {% endif %}
+                        </div>
+
+                        <div class="avatar-upload-actions">
+                            <label class="btn-change-photo disabled" id="lblCambiarFoto">
+                                📷 Cambiar foto
+                                <input type="file" name="foto_perfil" id="foto_perfil" accept="image/*" onchange="previsualizarAvatar(this)" disabled>
+                            </label>
+                            <span class="photo-hint">JPG o PNG. Máximo 5 MB.</span>
+                        </div>
+                    </div>
+
+                    <!-- FORMULARIO DE DATOS -->
+                    <div class="profile-form-grid">
+                        
+                        <!-- Nombre Completo -->
+                        <div class="profile-field">
+                            <label>Nombre completo</label>
+                            <div class="input-with-icon">
+                                <span class="field-icon">👤</span>
+                                <input type="text" name="nombre_completo" id="nombre_completo" value="{{ usuario.nombre_completo }}" required disabled>
+                            </div>
+                        </div>
+
+                        <!-- Teléfono / WhatsApp -->
+                        <div class="profile-field">
+                            <label>Teléfono / WhatsApp</label>
+                            <div class="input-with-icon">
+                                <span class="field-icon">📱</span>
+                                <input type="text" name="telefono" id="telefono" value="{{ usuario.telefono }}" required disabled>
+                                <span class="verified-badge" title="Verificado">✓</span>
+                            </div>
+                        </div>
+
+                        <!-- Correo Electrónico (SIEMPRE BLOQUEADO 🔒) -->
+                        <div class="profile-field span-2">
+                            <label>Correo electrónico <span class="locked-tag">🔒 No modificable</span></label>
+                            <div class="input-with-icon locked">
+                                <span class="field-icon">✉️</span>
+                                <input type="email" value="{{ usuario.email }}" readonly tabindex="-1">
+                                <span class="verified-badge" title="Correo principal">✓</span>
+                            </div>
+                            <small class="field-hint">Si deseas cambiar tu correo, contacta a soporte de Medilink.</small>
+                        </div>
+
+                        <!-- Nombre de la Droguería -->
+                        <div class="profile-field span-2">
+                            <label>Nombre de la Droguería / Farmacia</label>
+                            <div class="input-with-icon">
+                                <span class="field-icon">💊</span>
+                                <input type="text" name="nombre_establecimiento" id="nombre_establecimiento" value="{{ usuario.nombre_establecimiento or 'Medilink Droguería' }}" placeholder="Ej. Droguería San José" disabled>
+                            </div>
+                        </div>
+
+                        <!-- Rol en el sistema (SIEMPRE BLOQUEADO 🔒) -->
+                        <div class="profile-field span-2">
+                            <label>Rol asignado <span class="locked-tag">🔒 No modificable</span></label>
+                            <div class="input-with-icon locked">
+                                <span class="field-icon">🛡️</span>
+                                <input type="text" value="{{ usuario.rol|capitalize }}" readonly tabindex="-1">
+                            </div>
+                        </div>
+
+                        <!-- Departamento con filtrado inteligente -->
+                        <div class="profile-field">
+                            <label>Departamento</label>
+                            <div class="input-with-icon">
+                                <span class="field-icon">📍</span>
+                                <input type="text" 
+                                       id="departamentoInput" 
+                                       name="departamento" 
+                                       list="listaDepartamentos" 
+                                       value="{{ usuario.departamento or 'Cundinamarca' }}" 
+                                       placeholder="Escribe o selecciona un departamento..." 
+                                       autocomplete="off"
+                                       oninput="actualizarMunicipios()"
+                                       disabled>
+                                <datalist id="listaDepartamentos"></datalist>
+                            </div>
+                        </div>
+
+                        <!-- Municipio / Ciudad con filtrado en cascada -->
+                        <div class="profile-field span-2">
+                            <label>Municipio / Ciudad</label>
+                            <div class="input-with-icon">
+                                <span class="field-icon">🏙️</span>
+                                <input type="text" 
+                                       id="municipioInput" 
+                                       name="municipio" 
+                                       list="listaMunicipios" 
+                                       value="{{ usuario.municipio or 'Facatativá' }}" 
+                                       placeholder="Escribe o selecciona un municipio..." 
+                                       autocomplete="off"
+                                       disabled>
+                                <datalist id="listaMunicipios"></datalist>
+                            </div>
+                        </div>
+
+                    </div>
+
+                    <!-- SECCIÓN DE RECUPERAR / CAMBIAR CONTRASEÑA (SÓLO TRAS CLIC EN EDITAR) -->
+                    <div class="password-section-box" id="seccionPassword" style="display: none;">
+                        <div class="password-section-header">
+                            <h3>🔑 Cambiar / Recuperar Contraseña</h3>
+                            <p>Deja estos campos en blanco si no deseas cambiar tu contraseña actual.</p>
+                        </div>
+                        <div class="profile-form-grid">
+                            <div class="profile-field">
+                                <label>Nueva Contraseña</label>
+                                <div class="input-with-icon">
+                                    <span class="field-icon">🔒</span>
+                                    <input type="password" name="nueva_password" id="nueva_password" placeholder="Mínimo 8 caracteres" disabled>
+                                </div>
+                            </div>
+
+                            <div class="profile-field">
+                                <label>Confirmar Nueva Contraseña</label>
+                                <div class="input-with-icon">
+                                    <span class="field-icon">🔒</span>
+                                    <input type="password" name="confirmar_password" id="confirmar_password" placeholder="Repite la contraseña" disabled>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- BOTONES DE ACCIÓN (EDITAR / GUARDAR / CANCELAR) -->
+                    <div class="profile-form-footer">
+                        <button type="button" class="agron-btn-submit" id="btnEditar" onclick="habilitarEdicion()">✏️ Editar Perfil</button>
+                        
+                        <div id="grupoAccionesEdicion" style="display: none; gap: 12px;">
+                            <button type="button" class="agron-btn-cancel" onclick="cancelarEdicion()">Cancelar</button>
+                            <button type="submit" class="agron-btn-submit">Guardar cambios &rarr;</button>
+                        </div>
+                    </div>
+
+                </form>
+            </section>
+
+        </div>
+    </main>
+
+    <script>
+        // BASE DE DATOS COMPLETA DE DEPARTAMENTOS Y MUNICIPIOS DE COLOMBIA
+        const colombiaGeo = {
+            "Bogotá D.C.": ["Bogotá D.C."],
+            "Amazonas": ["Leticia", "Puerto Nariño"],
+            "Antioquia": ["Medellín", "Bello", "Itagüí", "Envigado", "Rionegro", "Apartadó", "Turbo", "Caucasia", "Sabaneta", "Puerto Berrío", "Jericó", "Guatapé", "Caldas", "Girardota", "La Estrella", "Marinilla"],
+            "Arauca": ["Arauca", "Tame", "Saravena", "Arauquita", "Fortul"],
+            "Atlántico": ["Barranquilla", "Soledad", "Malambo", "Sabanalarga", "Puerto Colombia", "Baranoa", "Galapa", "Luruaco"],
+            "Bolívar": ["Cartagena", "Magangué", "Turbaco", "El Carmen de Bolívar", "Mompox", "Arjona", "Turbana"],
+            "Boyacá": ["Tunja", "Duitama", "Sogamoso", "Chiquinquirá", "Paipa", "Villa de Leyva", "Moniquirá", "Puerto Boyacá"],
+            "Caldas": ["Manizales", "Villamaría", "La Dorada", "Riosucio", "Chinchiná", "Salamina", "Anserma"],
+            "Caquetá": ["Florencia", "San Vicente del Caguán", "Puerto Rico", "Belén de los Andaquíes"],
+            "Casanare": ["Yopal", "Aguazul", "Pore", "Tauramena", "Monterrey", "Paz de Ariporo"],
+            "Cauca": ["Popayán", "Santander de Quilichao", "Puerto Tejada", "Patía", "Piendamó"],
+            "Cesar": ["Valledupar", "Aguachica", "Agustín Codazzi", "Bosconia", "Curumaní"],
+            "Chocó": ["Quibdó", "Istmina", "Acandí", "Nuquí", "Condoto", "Bahía Solano"],
+            "Córdoba": ["Montería", "Cereté", "Sahagún", "Lorica", "Montelíbano", "Planeta Rica"],
+            "Cundinamarca": ["Facatativá", "Zipaquirá", "Chía", "Soacha", "Girardot", "Fusagasugá", "Mosquera", "Funza", "Madrid", "Cajicá", "Sopó", "Tocancipá", "Ubaté", "Villeta", "La Vega", "Sibaté"],
+            "Guainía": ["Inírida"],
+            "Guaviare": ["San José del Guaviare", "Calamar", "El Retorno"],
+            "Huila": ["Neiva", "Pitalito", "Garzón", "La Plata", "San Agustín", "Palermo"],
+            "La Guajira": ["Riohacha", "Maicao", "Uribia", "Fonseca", "San Juan del Cesar"],
+            "Magdalena": ["Santa Marta", "Ciénaga", "Fundación", "El Banco", "Plato", "Aracataca"],
+            "Meta": ["Villavicencio", "Acacías", "Granada", "Puerto López", "Puerto Gaitán", "San Martín"],
+            "Nariño": ["Pasto", "Ipiales", "Tumaco", "Túquerres", "Sandoná", "Barbacoas"],
+            "Norte de Santander": ["Cúcuta", "Ocaña", "Pamplona", "Villa del Rosario", "Los Patios", "Tibú"],
+            "Putumayo": ["Mocoa", "Puerto Asís", "Orito", "Sibundoy", "Valle del Guamuez"],
+            "Quindío": ["Armenia", "Tebada", "Calarcá", "Salento", "Montenegro", "Quimbaya", "Circasia"],
+            "Risaralda": ["Pereira", "Dosquebradas", "Santa Rosa de Cabal", "Belén de Umbría", "La Virginia"],
+            "San Andrés y Providencia": ["San Andrés", "Providencia"],
+            "Santander": ["Bucaramanga", "Floridablanca", "Girón", "Piedecuesta", "Barrancabermeja", "San Gil", "Barichara", "Socorro", "Vélez"],
+            "Sucre": ["Sincelejo", "Corozal", "San Marcos", "Tolú", "Sampués"],
+            "Tolima": ["Ibagué", "Espinal", "Melgar", "Honda", "Mariquita", "Lérida", "Chaparral", "Libano"],
+            "Valle del Cauca": ["Cali", "Buenaventura", "Palmira", "Tuluá", "Buga", "Cartago", "Jamundí", "Yumbo", "Sevilla", "Zarzal"],
+            "Vaupés": ["Mitú"],
+            "Vichada": ["Puerto Carreño", "La Primavera", "Cumaribo"]
+        };
+
+        const camposEditablesIds = [
+            'nombre_completo', 'telefono', 'nombre_establecimiento', 
+            'departamentoInput', 'municipioInput', 'foto_perfil',
+            'nueva_password', 'confirmar_password'
+        ];
+
+        function habilitarEdicion() {
+            camposEditablesIds.forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.removeAttribute('disabled');
+            });
+
+            document.getElementById('lblCambiarFoto').classList.remove('disabled');
+            document.getElementById('seccionPassword').style.display = 'block';
+            document.getElementById('btnEditar').style.display = 'none';
+            document.getElementById('grupoAccionesEdicion').style.display = 'flex';
+        }
+
+        function cancelarEdicion() {
+            camposEditablesIds.forEach(id => {
+                const el = document.getElementById(id);
+                if (el) {
+                    el.setAttribute('disabled', 'true');
+                    if (id === 'nueva_password' || id === 'confirmar_password') {
+                        el.value = '';
+                    }
+                }
+            });
+
+            document.getElementById('lblCambiarFoto').classList.add('disabled');
+            document.getElementById('seccionPassword').style.display = 'none';
+            document.getElementById('btnEditar').style.display = 'inline-block';
+            document.getElementById('grupoAccionesEdicion').style.display = 'none';
+        }
+
+        function inicializarDepartamentos() {
+            const datalistDepto = document.getElementById('listaDepartamentos');
+            datalistDepto.innerHTML = '';
+            
+            Object.keys(colombiaGeo).sort().forEach(depto => {
+                const option = document.createElement('option');
+                option.value = depto;
+                datalistDepto.appendChild(option);
+            });
+
+            actualizarMunicipios();
+        }
+
+        function actualizarMunicipios() {
+            const deptoSeleccionado = document.getElementById('departamentoInput').value.trim();
+            const datalistMuni = document.getElementById('listaMunicipios');
+            
+            datalistMuni.innerHTML = '';
+
+            if (colombiaGeo[deptoSeleccionado]) {
+                colombiaGeo[deptoSeleccionado].sort().forEach(muni => {
+                    const option = document.createElement('option');
+                    option.value = muni;
+                    datalistMuni.appendChild(option);
+                });
+            }
+        }
+
+        function previsualizarAvatar(input) {
+            if (input.files && input.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const img = document.getElementById('avatarImg');
+                    const initials = document.getElementById('avatarInitials');
+                    
+                    img.src = e.target.result;
+                    img.style.display = 'block';
+                    if (initials) initials.style.display = 'none';
+                }
+                reader.readAsDataURL(input.files[0]);
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', inicializarDepartamentos);
+    </script>
+</body>
+</html>

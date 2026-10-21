@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Medilink - Crear Cuenta</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container-split">
+        <div class="left-panel">
+            <span class="subtitle">ÚNETE A MEDILINK</span>
+            <h1>Crea tu cuenta<br>de cliente hoy.</h1>
+            <p>Accede a nuestro catálogo de droguería, realiza tus pedidos online y gestiona tus entregas.</p>
+        </div>
+
+        <div class="right-panel">
+            <div class="form-box">
+                <div class="brand-header">
+                    <h2>💊 Medilink </h2>
+                </div>
+
+                <span class="welcome-label">REGISTRO</span>
+                <h3 class="title-login">Crear nueva cuenta</h3>
+                <p class="subtitle-login">Completa tus datos para empezar a usar la plataforma.</p>
+
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                  {% if messages %}
+                    {% for category, message in messages %}
+                      <div class="alert alert-{{ category }}">{{ message }}</div>
+                    {% endfor %}
+                  {% endif %}
+                {% endwith %}
+
+                <form action="{{ url_for('registro') }}" method="POST">
+                    <div class="form-group">
+                        <label>Nombre Completo</label>
+                        <div class="input-container">
+                            <input type="text" name="nombre" placeholder="Juan Pérez" required>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Correo Electrónico</label>
+                        <div class="input-container">
+                            <input type="email" name="email" placeholder="ejemplo@medilink.com" required>
+                        </div>
+                    </div>
+
+                    <!-- CAMPO TELÉFONO -->
+                    <div class="form-group">
+                        <label>Número de Teléfono / Celular</label>
+                        <div class="input-container">
+                            <input type="tel" name="telefono" placeholder="300 123 4567" pattern="[0-9]{7,15}" title="Ingresa un número válido de 7 a 15 dígitos" required>
+                        </div>
+                    </div>
+
+                    <!-- CAMPO CONTRASEÑA -->
+                    <div class="form-group">
+                        <label>Contraseña</label>
+                        <div class="input-container">
+                            <input type="password" id="password" name="password" placeholder="••••••••" required minlength="8">
+                            <button type="button" class="toggle-password" onclick="togglePasswordVisibility('password', this)" tabindex="-1" title="Mostrar/Ocultar contraseña">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                                    <circle cx="12" cy="12" r="3"></circle>
+                                </svg>
+                            </button>
+                        </div>
+
+                        <!-- REQUISITOS VISUALES -->
+                        <div class="password-requirements" id="password-reqs">
+                            <span class="req-item" id="req-length">
+                                <span class="req-icon">✕</span> Al menos 8 caracteres
+                            </span>
+                            <span class="req-item" id="req-uppercase">
+                                <span class="req-icon">✕</span> Una letra mayúscula
+                            </span>
+                            <span class="req-item" id="req-number">
+                                <span class="req-icon">✕</span> Al menos un número
+                            </span>
+                            <span class="req-item" id="req-symbol">
+                                <span class="req-icon">✕</span> Un símbolo (\$ . _ - # @ !)
+                            </span>
+                        </div>
+                    </div>
+
+                    <!-- CAMPO CONFIRMAR CONTRASEÑA -->
+                    <div class="form-group">
+                        <label>Confirmar Contraseña</label>
+                        <div class="input-container">
+                            <input type="password" id="confirm_password" name="confirm_password" placeholder="••••••••" required>
+                            <button type="button" class="toggle-password" onclick="togglePasswordVisibility('confirm_password', this)" tabindex="-1" title="Mostrar/Ocultar contraseña">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                                    <circle cx="12" cy="12" r="3"></circle>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn-primary">
+                        Registrarme &rarr;
+                    </button>
+                </form>
+
+                <p class="footer-text">
+                    ¿Ya tienes una cuenta? <a href="{{ url_for('login') }}" class="link-bold">Iniciar sesión</a>
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- SCRIPTS -->
+    <script>
+        function togglePasswordVisibility(inputId, button) {
+            const input = document.getElementById(inputId);
+            const isPassword = input.type === 'password';
+
+            input.type = isPassword ? 'text' : 'password';
+
+            if (isPassword) {
+                button.innerHTML = `
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
+                        <line x1="1" y1="1" x2="23" y2="23"></line>
+                    </svg>`;
+            } else {
+                button.innerHTML = `
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                        <circle cx="12" cy="12" r="3"></circle>
+                    </svg>`;
+            }
+        }
+
+        function setupPasswordEye(inputId) {
+            const input = document.getElementById(inputId);
+            if (!input) return;
+            const btn = input.nextElementSibling;
+
+            function actualizarVisibilidad() {
+                if (input.value.length > 0 || document.activeElement === input) {
+                    btn.style.display = 'flex';
+                } else {
+                    btn.style.display = 'none';
+                }
+            }
+
+            input.addEventListener('input', actualizarVisibilidad);
+            input.addEventListener('focus', actualizarVisibilidad);
+            input.addEventListener('blur', actualizarVisibilidad);
+
+            actualizarVisibilidad();
+        }
+
+        function setupPasswordRequirements() {
+            const pwdInput = document.getElementById('password');
+            const reqLength = document.getElementById('req-length');
+            const reqUppercase = document.getElementById('req-uppercase');
+            const reqNumber = document.getElementById('req-number');
+            const reqSymbol = document.getElementById('req-symbol');
+
+            function updateRequirement(element, isValid) {
+                const icon = element.querySelector('.req-icon');
+                if (isValid) {
+                    element.classList.add('valid');
+                    icon.textContent = '✓';
+                } else {
+                    element.classList.remove('valid');
+                    icon.textContent = '✕';
+                }
+            }
+
+            pwdInput.addEventListener('input', () => {
+                const val = pwdInput.value;
+                updateRequirement(reqLength, val.length >= 8);
+                updateRequirement(reqUppercase, /[A-Z]/.test(val));
+                updateRequirement(reqNumber, /[0-9]/.test(val));
+                updateRequirement(reqSymbol, /[!@#\$%^&*(),.?":{}|<>_\-]/.test(val));
+            });
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            setupPasswordEye('password');
+            setupPasswordEye('confirm_password');
+            setupPasswordRequirements();
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,1 @@
+SELECT * FROM drogueria_db.medicamentos;

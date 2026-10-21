@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Medilink - Restablecer Contraseña</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container-split">
+        <div class="left-panel">
+            <span class="subtitle">RESTABLECER ACCESO</span>
+            <h1>Crea tu nueva<br>contraseña.</h1>
+            <p>Ingresa una contraseña segura para volver a ingresar a tu cuenta de Medilink.</p>
+        </div>
+
+        <div class="right-panel">
+            <div class="form-box">
+                <div class="brand-header">
+                    <h2>💊 Medilink</h2>
+                </div>
+
+                <h3 class="title-login">Nueva contraseña</h3>
+                <p class="subtitle-login">Ingresa la nueva clave para tu usuario.</p>
+
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                  {% if messages %}
+                    {% for category, message in messages %}
+                      <div class="alert alert-{{ category }}">{{ message }}</div>
+                    {% endfor %}
+                  {% endif %}
+                {% endwith %}
+
+                <form action="{{ url_for('restablecer_password', token=token) }}" method="POST">
+                    <div class="form-group">
+                        <label>Nueva Contraseña</label>
+                        <div class="input-container">
+                            <input type="password" id="password" name="password" placeholder="••••••••" required minlength="8">
+                            <button type="button" class="toggle-password" onclick="togglePasswordVisibility('password', this)" tabindex="-1">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                                    <circle cx="12" cy="12" r="3"></circle>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Confirmar Nueva Contraseña</label>
+                        <div class="input-container">
+                            <input type="password" id="confirm_password" name="confirm_password" placeholder="••••••••" required>
+                            <button type="button" class="toggle-password" onclick="togglePasswordVisibility('confirm_password', this)" tabindex="-1">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                                    <circle cx="12" cy="12" r="3"></circle>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn-primary">
+                        Actualizar Contraseña &rarr;
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function togglePasswordVisibility(inputId, button) {
+            const input = document.getElementById(inputId);
+            const isPassword = input.type === 'password';
+            input.type = isPassword ? 'text' : 'password';
+        }
+    </script>
+</body>
+</html>

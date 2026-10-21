@@ -1,0 +1,601 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Medilink - Catálogo y Droguería</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body class="agron-bg">
+
+    <!-- NAVBAR SUPERIOR -->
+    <header class="navbar-top">
+        <div class="navbar-container">
+            <div class="navbar-brand">
+                <span class="brand-icon">💊</span>
+                <div class="brand-text">
+                    <h2>Medilink</h2>
+                    <small>Droguería & Farmacia</small>
+                </div>
+            </div>
+
+            <!-- Buscador Global -->
+            <div class="navbar-search">
+                <span class="search-icon">🔍</span>
+                <input type="text" id="buscadorCatalogo" placeholder="¿Qué medicamento estás buscando?" onkeyup="filtrarCatalogo()">
+            </div>
+
+            <!-- Acciones de Usuario con Menú Desplegable de Perfil -->
+            <div class="navbar-actions">
+                <button class="btn-inventory" onclick="abrirModalInventario()">
+                    <span>📦</span> Inventario
+                </button>
+
+                <!-- MENÚ INTERACTIVO DE PERFIL -->
+                <div class="user-profile-dropdown" id="userProfileDropdown">
+                    <button class="user-profile-pill" onclick="toggleProfileMenu(event)">
+                        <div class="avatar-circle">
+                            {% if foto_perfil and 'default_avatar' not in foto_perfil %}
+                                <img src="{{ foto_perfil }}" class="nav-avatar-img" alt="Avatar">
+                            {% else %}
+                                {{ nombre[:2]|upper }}
+                            {% endif %}
+                        </div>
+                        <div class="user-details">
+                            <strong>{{ nombre }}</strong>
+                            <small>Droguero</small>
+                        </div>
+                        <span class="dropdown-arrow">▼</span>
+                    </button>
+
+                    <!-- MENÚ DESPLEGABLE -->
+                    <div class="profile-dropdown-menu" id="profileDropdownMenu">
+                        <div class="dropdown-user-header">
+                            <strong>{{ nombre }}</strong>
+                            <small>{{ email }}</small>
+                        </div>
+                        <div class="dropdown-divider"></div>
+                        <a href="{{ url_for('perfil') }}" class="dropdown-item">
+                            <span class="item-icon">👤</span> Mi perfil
+                        </a>
+                        <a href="#" class="dropdown-item">
+                            <span class="item-icon">⚙️</span> Configuración
+                        </a>
+                        <div class="dropdown-divider"></div>
+                        <a href="{{ url_for('logout') }}" class="dropdown-item logout-item">
+                            <span class="item-icon">🚪</span> Cerrar Sesión
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- CONTENIDO PRINCIPAL / CATÁLOGO PÚBLICO -->
+    <main class="catalog-container">
+        <div class="catalog-header">
+            <span class="catalog-tagline">CATÁLOGO DE PRODUCTOS</span>
+            <h1>Medicamentos e Insumos Publicados</h1>
+            <p>Vista pública disponible para la compra de tus clientes.</p>
+            <div class="catalog-counter">
+                <span id="totalPublicados">{{ medicamentos|length }}</span> productos en exhibición
+            </div>
+        </div>
+
+        <!-- Filtros por Categorías -->
+        <div class="category-pills">
+            <button class="pill-btn active" onclick="filtrarCategoria('todas', this)">Todos</button>
+            <button class="pill-btn" onclick="filtrarCategoria('Analgésicos', this)">Analgésicos</button>
+            <button class="pill-btn" onclick="filtrarCategoria('Antibióticos', this)">Antibióticos</button>
+            <button class="pill-btn" onclick="filtrarCategoria('Antiinflamatorios', this)">Antiinflamatorios</button>
+            <button class="pill-btn" onclick="filtrarCategoria('Vitaminas', this)">Vitaminas</button>
+            <button class="pill-btn" onclick="filtrarCategoria('Cuidado Personal', this)">Cuidado Personal</button>
+        </div>
+
+        <!-- MENSAJES FLASH -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}
+            {% for category, message in messages %}
+              <div class="alert alert-{{ category }}" style="margin-bottom: 20px;">{{ message }}</div>
+            {% endfor %}
+          {% endif %}
+        {% endwith %}
+
+        <!-- GRID DE TARJETAS DE PRODUCTOS CON FOTO Y PRECIOS -->
+        <div class="product-grid" id="gridProductos">
+            {% for m in medicamentos %}
+            <div class="product-card" data-nombre="{{ m.nombre|lower }}" data-categoria="{{ m.categoria }}">
+                
+                <div class="card-image-box">
+                    <img src="{{ m.imagen_url }}" alt="{{ m.nombre }}" class="product-img" onerror="this.src='https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?w=500&auto=format&fit=crop&q=60'">
+                    
+                    {% if m.stock == 0 %}
+                        <span class="badge-status danger">Agotado</span>
+                    {% elif m.requiere_receta %}
+                        <span class="badge-status recipe">Receta Médica</span>
+                    {% else %}
+                        <span class="badge-status success">Disponible</span>
+                    {% endif %}
+                </div>
+
+                <div class="card-content">
+                    <span class="card-category">{{ m.categoria }} &bull; {{ m.laboratorio }}</span>
+                    <h3 class="card-title">{{ m.nombre }}</h3>
+                    <p class="card-description">{{ m.descripcion or 'Sin descripción disponible.' }}</p>
+
+                    <div class="price-options-box">
+                        <span class="price-title">Precios de Venta:</span>
+                        <div class="price-tags-container">
+                            {% if m.precio_unidad > 0 %}
+                                <div class="price-chip">
+                                    <small>Unidad:</small>
+                                    <strong>${{ "{:,.0f}".format(m.precio_unidad).replace(',', '.') }}</strong>
+                                </div>
+                            {% endif %}
+                            {% if m.precio_tableta > 0 %}
+                                <div class="price-chip">
+                                    <small>Tableta:</small>
+                                    <strong>${{ "{:,.0f}".format(m.precio_tableta).replace(',', '.') }}</strong>
+                                </div>
+                            {% endif %}
+                            {% if m.precio_caja > 0 %}
+                                <div class="price-chip highlight">
+                                    <small>Caja:</small>
+                                    <strong>${{ "{:,.0f}".format(m.precio_caja).replace(',', '.') }}</strong>
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <p class="stock-info">
+                        📦 <strong>{{ m.stock }} un. en stock</strong>
+                    </p>
+
+                    <div class="card-footer-action">
+                        <button class="btn-go-inventory" 
+                                data-id="{{ m.id }}"
+                                data-nombre="{{ m.nombre }}"
+                                data-descripcion="{{ m.descripcion or '' }}"
+                                data-imagen="{{ m.imagen_url }}"
+                                data-presentacion="{{ m.presentacion }}"
+                                data-precio-caja="{{ m.precio_caja }}"
+                                data-precio-tableta="{{ m.precio_tableta }}"
+                                data-precio-unidad="{{ m.precio_unidad }}"
+                                data-codigo="{{ m.codigo_barras or '' }}"
+                                data-laboratorio="{{ m.laboratorio }}"
+                                data-categoria="{{ m.categoria }}"
+                                data-lote="{{ m.lote }}"
+                                data-stock="{{ m.stock }}"
+                                data-vencimiento="{{ m.fecha_vencimiento }}"
+                                data-receta="{{ '1' if m.requiere_receta else '0' }}"
+                                onclick="irAEditarEnInventario(this)">
+                            🔍 Ver en inventario
+                        </button>
+                    </div>
+                </div>
+            </div>
+            {% else %}
+            <div class="empty-catalog-box">
+                <span class="empty-icon">💊</span>
+                <h3>No hay medicamentos publicados aún</h3>
+                <p>Haz clic en el botón verde <strong>"📦 Inventario"</strong> para registrar tu primer producto.</p>
+                <button class="btn-inventory" onclick="abrirModalInventario()">+ Abrir Inventario</button>
+            </div>
+            {% endfor %}
+        </div>
+    </main>
+
+    <!-- VENTANA MODAL PRINCIPAL DE GESTIÓN DE INVENTARIO -->
+    <div class="modal-overlay" id="modalInventario">
+        <div class="modal-box-large">
+            <div class="modal-header">
+                <div>
+                    <h2>📦 Gestión de Inventario</h2>
+                    <p>Agrega, edita, busca, modifica stock o elimina medicamentos.</p>
+                </div>
+                <button type="button" class="btn-close" onclick="cerrarModalInventario()">&times;</button>
+            </div>
+
+            <div class="inventory-top-bar">
+                <button class="btn-primary-action" onclick="mostrarFormularioNuevo()">+ Nuevo Medicamento</button>
+                
+                <div class="inventory-search-box">
+                    <span class="search-icon">🔍</span>
+                    <input type="text" id="buscadorTablaInventario" placeholder="Buscar en inventario (nombre, código, lote)..." onkeyup="filtrarTablaInventario()">
+                </div>
+            </div>
+
+            <!-- MODAL PUBLICAR PRODUCTO -->
+            <div class="agron-modal-container" id="formDrawer" style="display: none;">
+                <div class="agron-modal-header">
+                    <span class="agron-tag-label">NUEVA PUBLICACIÓN</span>
+                    <h2 id="formTitulo">Publica tu producto</h2>
+                    <p class="agron-subtitle">Registra y conecta tu producto directamente en el catálogo de Medilink.</p>
+                </div>
+
+                <form action="{{ url_for('guardar_producto') }}" method="POST" enctype="multipart/form-data">
+                    <input type="hidden" id="med_id" name="id">
+                    <input type="hidden" id="med_imagen_actual" name="imagen_url_actual">
+
+                    <div class="agron-upload-box" onclick="document.getElementById('med_imagen_file').click()">
+                        <input type="file" name="imagen_file" id="med_imagen_file" accept="image/*" capture="environment" style="display: none;" onchange="previsualizarFoto(this)">
+                        
+                        <div class="upload-content-placeholder" id="uploadPlaceholder">
+                            <div class="camera-icon-circle">
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#14532D" stroke-width="2">
+                                    <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
+                                    <circle cx="12" cy="13" r="4"></circle>
+                                </svg>
+                            </div>
+                            <strong>Agrega una foto del producto</strong>
+                            <p>PNG, JPG o WEBP en alta resolución</p>
+                        </div>
+
+                        <div class="upload-preview-box" id="uploadPreview" style="display: none;">
+                            <img id="med_preview_img" src="" alt="Vista previa">
+                            <span class="change-photo-badge">📷 Cambiar foto</span>
+                        </div>
+                    </div>
+
+                    <div class="agron-form-grid">
+                        <div class="agron-field span-2">
+                            <label>Nombre del producto *</label>
+                            <div class="agron-input-wrap">
+                                <span class="input-icon">💊</span>
+                                <input type="text" id="med_nombre" name="nombre" placeholder="Ej. Acetaminofén 500mg" required>
+                            </div>
+                        </div>
+
+                        <div class="agron-field span-2">
+                            <label>Categoría *</label>
+                            <div class="agron-input-wrap">
+                                <span class="input-icon">🏷️</span>
+                                <select id="med_categoria" name="categoria" required>
+                                    <option value="" disabled selected>Selecciona una categoría</option>
+                                    <option value="Analgésicos">Analgésicos</option>
+                                    <option value="Antibióticos">Antibióticos</option>
+                                    <option value="Antiinflamatorios">Antiinflamatorios</option>
+                                    <option value="Vitaminas">Vitaminas</option>
+                                    <option value="Cuidado Personal">Cuidado Personal</option>
+                                    <option value="Dermatología">Dermatología</option>
+                                    <option value="Salud Cardiovascular">Salud Cardiovascular</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="agron-field span-2">
+                            <label>Descripción del medicamento</label>
+                            <div class="agron-input-wrap">
+                                <span class="input-icon">📝</span>
+                                <input type="text" id="med_descripcion" name="descripcion" placeholder="Ej. Alivia dolor de cabeza y fiebre. Presentación por 100 tabletas.">
+                            </div>
+                        </div>
+
+                        <div class="agron-field span-2">
+                            <label>Código de Barras Único</label>
+                            <div class="agron-input-wrap with-action">
+                                <span class="input-icon">⚡</span>
+                                <input type="text" id="med_codigo" name="codigo_barras" placeholder="Ej. 7701234567890">
+                                <button type="button" class="btn-pill-action" onclick="generarCodigoBarrasUnico()">Generar Código</button>
+                            </div>
+                        </div>
+
+                        <div class="agron-field">
+                            <label>Laboratorio *</label>
+                            <div class="agron-input-wrap">
+                                <span class="input-icon">🔬</span>
+                                <input type="text" id="med_laboratorio" name="laboratorio" placeholder="Ej. Genfar / MK" required>
+                            </div>
+                        </div>
+
+                        <div class="agron-field">
+                            <label>Número de Lote *</label>
+                            <div class="agron-input-wrap">
+                                <span class="input-icon">📦</span>
+                                <input type="text" id="med_lote" name="lote" placeholder="Ej. L-2026A" required>
+                            </div>
+                        </div>
+
+                        <div class="agron-field">
+                            <label>Precio por Unidad ($ COP)</label>
+                            <div class="agron-input-wrap">
+                                <span class="input-icon">🛒</span>
+                                <input type="text" id="med_precio_unidad" name="precio_unidad" placeholder="$ 500" oninput="formatearMonedaCOP(this)">
+                            </div>
+                        </div>
+
+                        <div class="agron-field">
+                            <label>Precio por Tableta ($ COP)</label>
+                            <div class="agron-input-wrap">
+                                <span class="input-icon">💊</span>
+                                <input type="text" id="med_precio_tableta" name="precio_tableta" placeholder="$ 1.500" oninput="formatearMonedaCOP(this)">
+                            </div>
+                        </div>
+
+                        <div class="agron-field">
+                            <label>Precio por Caja ($ COP)</label>
+                            <div class="agron-input-wrap">
+                                <span class="input-icon">📦</span>
+                                <input type="text" id="med_precio_caja" name="precio_caja" placeholder="$ 12.000" oninput="formatearMonedaCOP(this)">
+                            </div>
+                        </div>
+
+                        <div class="agron-field">
+                            <label>Stock disponible (Unidades) *</label>
+                            <div class="agron-input-wrap">
+                                <span class="input-icon">🏭</span>
+                                <input type="text" id="med_stock" name="stock" placeholder="Ej. 50" oninput="formatearSoloNumeros(this)" required>
+                            </div>
+                        </div>
+
+                        <div class="agron-field span-2">
+                            <label>Fecha de Vencimiento *</label>
+                            <div class="agron-input-wrap">
+                                <span class="input-icon">📅</span>
+                                <input type="date" id="med_vencimiento" name="fecha_vencimiento" required>
+                            </div>
+                        </div>
+
+                    </div>
+
+                    <div class="checkbox-container-agron">
+                        <label class="custom-checkbox-label">
+                            <input type="checkbox" id="med_receta" name="requiere_receta">
+                            <span>Requiere Receta Médica Obligatoria</span>
+                        </label>
+                    </div>
+
+                    <div class="agron-modal-actions">
+                        <button type="button" class="agron-btn-cancel" onclick="ocultarFormulario()">Cancelar</button>
+                        <button type="submit" class="agron-btn-submit">Publicar producto &rarr;</button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- TABLA INVENTARIO -->
+            <div class="table-scroll-box">
+                <table class="data-table" id="tablaInventario">
+                    <thead>
+                        <tr>
+                            <th>Foto</th>
+                            <th>Medicamento</th>
+                            <th>Laboratorio / Lote</th>
+                            <th>Precios</th>
+                            <th>Stock</th>
+                            <th>Añadido</th>
+                            <th>Vencimiento</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for m in medicamentos %}
+                        <tr id="tr-med-{{ m.id }}">
+                            <td>
+                                <img src="{{ m.imagen_url }}" class="thumb-img" onerror="this.src='https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?w=500&auto=format&fit=crop&q=60'">
+                            </td>
+                            <td>
+                                <strong>{{ m.nombre }}</strong><br>
+                                <small class="text-muted">Cód: {{ m.codigo_barras or 'Sin código' }}</small>
+                            </td>
+                            <td>{{ m.laboratorio }}<br><small>Lote: {{ m.lote }}</small></td>
+                            <td>
+                                <small>
+                                    U: ${{ "{:,.0f}".format(m.precio_unidad).replace(',', '.') }} | 
+                                    T: ${{ "{:,.0f}".format(m.precio_tableta).replace(',', '.') }} | 
+                                    C: ${{ "{:,.0f}".format(m.precio_caja).replace(',', '.') }}
+                                </small>
+                            </td>
+                            <td>
+                                {% if m.stock == 0 %}
+                                    <span class="badge badge-danger">Agotado (0)</span>
+                                {% elif m.stock <= 10 %}
+                                    <span class="badge badge-warning">Bajo ({{ m.stock }})</span>
+                                {% else %}
+                                    <span class="badge badge-success">{{ m.stock }} un.</span>
+                                {% endif %}
+                            </td>
+                            <td><small>{{ m.fecha_reg_formato or m.fecha_registro }}</small></td>
+                            <td><small>{{ m.fecha_vencimiento }}</small></td>
+                            <td class="actions-cell">
+                                <button class="btn-icon" 
+                                        data-id="{{ m.id }}"
+                                        data-nombre="{{ m.nombre }}"
+                                        data-descripcion="{{ m.descripcion or '' }}"
+                                        data-imagen="{{ m.imagen_url }}"
+                                        data-precio-caja="{{ m.precio_caja }}"
+                                        data-precio-tableta="{{ m.precio_tableta }}"
+                                        data-precio-unidad="{{ m.precio_unidad }}"
+                                        data-codigo="{{ m.codigo_barras or '' }}"
+                                        data-laboratorio="{{ m.laboratorio }}"
+                                        data-categoria="{{ m.categoria }}"
+                                        data-lote="{{ m.lote }}"
+                                        data-stock="{{ m.stock }}"
+                                        data-vencimiento="{{ m.fecha_vencimiento }}"
+                                        data-receta="{{ '1' if m.requiere_receta else '0' }}"
+                                        onclick="cargarDatosEnFormulario(this)">✏️ Editar</button>
+                                
+                                <form action="{{ url_for('borrar_producto', id_med=m.id) }}" method="POST" style="display:inline;" onsubmit="return confirm('¿Deseas eliminar este medicamento del inventario?')">
+                                    <button type="submit" class="btn-icon danger">🗑️</button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="8" style="text-align: center; padding: 20px;">No hay items registrados en el inventario.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- SCRIPTS INTERACTIVOS -->
+    <script>
+        function toggleProfileMenu(event) {
+            event.stopPropagation();
+            const dropdown = document.getElementById('profileDropdownMenu');
+            dropdown.classList.toggle('show');
+        }
+
+        window.addEventListener('click', function(e) {
+            const dropdown = document.getElementById('profileDropdownMenu');
+            const pill = document.querySelector('.user-profile-pill');
+            if (dropdown && dropdown.classList.contains('show') && !dropdown.contains(e.target) && !pill.contains(e.target)) {
+                dropdown.classList.remove('show');
+            }
+        });
+
+        function abrirModalInventario() {
+            document.getElementById('modalInventario').style.display = 'flex';
+        }
+
+        function cerrarModalInventario() {
+            document.getElementById('modalInventario').style.display = 'none';
+            ocultarFormulario();
+        }
+
+        function mostrarFormularioNuevo() {
+            document.getElementById('formTitulo').textContent = 'Publica tu medicamento';
+            document.getElementById('med_id').value = '';
+            document.getElementById('med_imagen_actual').value = '';
+            
+            document.getElementById('uploadPreview').style.display = 'none';
+            document.getElementById('uploadPlaceholder').style.display = 'block';
+
+            document.getElementById('med_nombre').value = '';
+            document.getElementById('med_descripcion').value = '';
+            document.getElementById('med_codigo').value = '';
+            generarCodigoBarrasUnico();
+            document.getElementById('med_laboratorio').value = '';
+            document.getElementById('med_categoria').value = '';
+            document.getElementById('med_lote').value = '';
+            document.getElementById('med_precio_unidad').value = '';
+            document.getElementById('med_precio_tableta').value = '';
+            document.getElementById('med_precio_caja').value = '';
+            document.getElementById('med_stock').value = '';
+            document.getElementById('med_vencimiento').value = '';
+            document.getElementById('med_receta').checked = false;
+            
+            document.getElementById('formDrawer').style.display = 'block';
+            document.getElementById('formDrawer').scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function ocultarFormulario() {
+            document.getElementById('formDrawer').style.display = 'none';
+        }
+
+        function formatearMonedaCOP(input) {
+            let numeros = input.value.replace(/\D/g, "");
+            if (numeros === "") {
+                input.value = "";
+                return;
+            }
+            let valorEntero = parseInt(numeros, 10);
+            input.value = "$ " + valorEntero.toLocaleString("es-CO");
+        }
+
+        function formatearValorNumericoACOP(valor) {
+            if (!valor || valor == "0") return "";
+            let num = Math.round(parseFloat(valor));
+            return "$ " + num.toLocaleString("es-CO");
+        }
+
+        function formatearSoloNumeros(input) {
+            input.value = input.value.replace(/\D/g, "");
+        }
+
+        function generarCodigoBarrasUnico() {
+            const aleatorio = Math.floor(1000000000 + Math.random() * 9000000000);
+            document.getElementById('med_codigo').value = '770' + aleatorio;
+        }
+
+        function previsualizarFoto(input) {
+            if (input.files && input.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    document.getElementById('med_preview_img').src = e.target.result;
+                    document.getElementById('uploadPlaceholder').style.display = 'none';
+                    document.getElementById('uploadPreview').style.display = 'block';
+                }
+                reader.readAsDataURL(input.files[0]);
+            }
+        }
+
+        function cargarDatosEnFormulario(btn) {
+            document.getElementById('formTitulo').textContent = 'Editar medicamento';
+            document.getElementById('med_id').value = btn.dataset.id;
+            document.getElementById('med_imagen_actual').value = btn.dataset.imagen;
+
+            if (btn.dataset.imagen) {
+                document.getElementById('med_preview_img').src = btn.dataset.imagen;
+                document.getElementById('uploadPlaceholder').style.display = 'none';
+                document.getElementById('uploadPreview').style.display = 'block';
+            }
+
+            document.getElementById('med_nombre').value = btn.dataset.nombre;
+            document.getElementById('med_descripcion').value = btn.dataset.descripcion;
+            document.getElementById('med_codigo').value = btn.dataset.codigo;
+            document.getElementById('med_laboratorio').value = btn.dataset.laboratorio;
+            document.getElementById('med_categoria').value = btn.dataset.categoria;
+            document.getElementById('med_lote').value = btn.dataset.lote;
+            
+            document.getElementById('med_precio_unidad').value = formatearValorNumericoACOP(btn.dataset.precioUnidad);
+            document.getElementById('med_precio_tableta').value = formatearValorNumericoACOP(btn.dataset.precioTableta);
+            document.getElementById('med_precio_caja').value = formatearValorNumericoACOP(btn.dataset.precioCaja);
+            
+            document.getElementById('med_stock').value = btn.dataset.stock;
+            document.getElementById('med_vencimiento').value = btn.dataset.vencimiento;
+            document.getElementById('med_receta').checked = btn.dataset.receta === '1';
+            
+            document.getElementById('formDrawer').style.display = 'block';
+            document.getElementById('formDrawer').scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function irAEditarEnInventario(btn) {
+            abrirModalInventario();
+            cargarDatosEnFormulario(btn);
+            
+            const medId = btn.dataset.id;
+            const fila = document.getElementById('tr-med-' + medId);
+            if (fila) {
+                fila.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                fila.style.backgroundColor = '#FEF08A';
+                setTimeout(() => { fila.style.backgroundColor = ''; }, 2500);
+            }
+        }
+
+        function filtrarTablaInventario() {
+            const query = document.getElementById('buscadorTablaInventario').value.toLowerCase();
+            const filas = document.querySelectorAll('#tablaInventario tbody tr');
+            filas.forEach(fila => {
+                const texto = fila.textContent.toLowerCase();
+                fila.style.display = texto.includes(query) ? '' : 'none';
+            });
+        }
+
+        function filtrarCatalogo() {
+            const query = document.getElementById('buscadorCatalogo').value.toLowerCase();
+            const cards = document.querySelectorAll('.product-card');
+            cards.forEach(card => {
+                const nombre = card.dataset.nombre;
+                card.style.display = nombre.includes(query) ? 'flex' : 'none';
+            });
+        }
+
+        function filtrarCategoria(cat, btnElement) {
+            document.querySelectorAll('.pill-btn').forEach(b => b.classList.remove('active'));
+            btnElement.classList.add('active');
+
+            const cards = document.querySelectorAll('.product-card');
+            cards.forEach(card => {
+                if (cat === 'todas' || card.dataset.categoria.toLowerCase() === cat.toLowerCase()) {
+                    card.style.display = 'flex';
+                } else {
+                    card.style.display = 'none';
+                }
+            });
+        }
+    </script>
+</body>
+</html>

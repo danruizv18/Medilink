@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Medilink - Recuperar Contraseña</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container-split">
+        <div class="left-panel">
+            <span class="subtitle">RECUPERACIÓN DE ACCESO</span>
+            <h1>¿Olvidaste tu contraseña?</h1>
+            <p>No te preocupes, te ayudamos a restablecer el acceso a tu cuenta rápidamente.</p>
+        </div>
+
+        <div class="right-panel">
+            <div class="form-box">
+                <div class="brand-header">
+                    <h2>💊 Medilink</h2>
+                </div>
+
+                <h3 class="title-login">Restablecer contraseña</h3>
+                <p class="subtitle-login">Ingresa tu correo y te enviaremos instrucciones.</p>
+
+                <form action="{{ url_for('olvide_password') }}" method="POST">
+                    <div class="form-group">
+                        <label>Correo electrónico</label>
+                        <div class="input-container">
+                            <input type="email" name="email" placeholder="ejemplo@medilink.com" required>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn-primary">Enviar instrucciones &rarr;</button>
+                </form>
+
+                <p class="footer-text">
+                    <a href="{{ url_for('login') }}" class="link-bold">&larr; Volver al inicio de sesión</a>
+                </p>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

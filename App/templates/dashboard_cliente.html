@@ -1,0 +1,11 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <title>Medilink - Panel Cliente</title>
+</head>
+<body style="font-family: sans-serif; padding: 40px; background-color: #f4f6f8;">
+    <h1>Bienvenido Cliente, {{ nombre }}!</h1>
+    <p>Aquí podrás ver el catálogo de medicamentos y realizar pedidos.</p>
+    <a href="{{ url_for('logout') }}">Cerrar Sesión</a>
+</body>
+</html>
